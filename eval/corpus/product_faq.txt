@@ -1,0 +1,23 @@
+Pricing
+
+The Starter plan costs 19 dollars per month and includes up to 3 team members. The Pro plan costs 49 dollars per month and includes up to 15 team members and priority support. Annual billing gives a 20 percent discount compared to paying monthly.
+
+Refund Policy
+
+New subscriptions can be refunded in full within 14 days of purchase, no questions asked. After 14 days, refunds are only issued for billing errors or duplicate charges, not for general dissatisfaction.
+
+Supported Platforms
+
+The product is available as a web app, a desktop app for Windows and macOS, and a mobile app for iOS and Android. The Linux desktop app is currently in beta and must be requested through support.
+
+Data Retention
+
+Deleted projects are kept in a recoverable trash folder for 30 days before being permanently erased. Account data for cancelled subscriptions is retained for 90 days in case the customer resubscribes, then permanently deleted.
+
+Support Hours
+
+Email support is available 24 hours a day, 7 days a week, with a typical first response time of 4 hours. Live chat support is available Monday through Friday, 9 AM to 6 PM Eastern time.
+
+API Rate Limits
+
+The API allows 100 requests per minute on the Starter plan and 500 requests per minute on the Pro plan. Requests beyond the limit receive a 429 response and should be retried with exponential backoff.

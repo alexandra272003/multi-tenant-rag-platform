@@ -1,0 +1,98 @@
+services:
+  postgres:
+    # pgvector image: identical to plain Postgres today, but Day 29 needs the
+    # vector extension, so using it now means no infrastructure change later.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_pass
+      POSTGRES_DB: ragdb
+    # No host port published: only the api container needs to reach Postgres,
+    # so it can't collide with another project's Postgres on port 5432.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d ragdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7
+    # No host port published, same reasoning as postgres: only api and worker need it.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rag_user:rag_pass@postgres:5432/ragdb
+      # Day 31: generation only -- embeddings need no key (local fastembed).
+      # ${VAR} is substituted from the host's .env by Docker Compose itself,
+      # which is more reliable than relying on the app to read .env from
+      # inside the built image (that bit us once already on this project).
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      LLM_MODEL: ${LLM_MODEL:-llama-3.1-8b-instant}
+      # Day 37: reach the container from .env (without these lines the
+      # settings silently stay at their defaults, whatever .env says).
+      LLM_STRUCTURED_METHOD: ${LLM_STRUCTURED_METHOD:-json_schema}
+      LLM_VALIDATION_RETRIES: ${LLM_VALIDATION_RETRIES:-2}
+      # Week 7: auth. CHANGE JWT_SECRET for anything beyond local development;
+      # with ENVIRONMENT != development the app refuses to start on the default.
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me-before-any-real-use}
+      JWT_TTL_MINUTES: ${JWT_TTL_MINUTES:-60}
+      REDIS_URL: redis://redis:6379/0
+      # Week 7 Sat: shared (Redis) rate limits, JSON logs, quotas.
+      RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      DAILY_QUERY_LIMIT: ${DAILY_QUERY_LIMIT:-500}
+      DAILY_UPLOAD_LIMIT: ${DAILY_UPLOAD_LIMIT:-100}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+    volumes:
+      # Day 29: fastembed downloads its ONNX model weights once (from
+      # Hugging Face) on first use. Without this volume, that download
+      # would repeat on every `docker compose down` + `up` cycle -- this
+      # persists the cache across container restarts.
+      - fastembed_cache:/root/.cache/fastembed
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  # Background ingestion. Same image and database as the API, so it shares the
+  # fastembed model cache. `-B` embeds the beat scheduler that runs the stuck-job
+  # sweeper; in production run beat as its own single process instead.
+  worker:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rag_user:rag_pass@postgres:5432/ragdb
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me-before-any-real-use}
+      INGEST_MAX_RETRIES: ${INGEST_MAX_RETRIES:-3}
+      INGEST_LEASE_SECONDS: ${INGEST_LEASE_SECONDS:-300}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+    volumes:
+      - fastembed_cache:/root/.cache/fastembed
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.jobs.celery_app worker -B --loglevel=info --concurrency=2
+
+volumes:
+  pgdata:
+  fastembed_cache:

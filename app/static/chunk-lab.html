@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chunk lab</title>
+<style>
+  :root {
+    --paper: #f5f6f8; --ink: #1c2230; --muted: #6a7385; --line: #d9dde5;
+    --a: #0f766e; --b: #4f46e5; --reuse: #fde68a; --err: #b4232c;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+  .wrap { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; min-height: 100vh; }
+  aside { padding: 24px; border-right: 1px solid var(--line); background: #fff; }
+  main { padding: 24px 32px 64px; max-width: 820px; }
+  h1 { font: 600 20px var(--serif); margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+  input[type=number], textarea {
+    width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 4px; background: #fff; color: var(--ink);
+  }
+  textarea { height: 230px; resize: vertical; font: 14px/1.5 var(--serif); }
+  input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--b); outline-offset: 1px; }
+  .row { display: flex; gap: 12px; } .row > div { flex: 1; }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--ink); }
+  .check input { width: auto; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+  .file { font-size: 13px; }
+  #stats { color: var(--muted); font-size: 13px; margin-bottom: 18px; min-height: 20px; }
+  #stats.err { color: var(--err); }
+  .chunk { border-left: 4px solid var(--a); padding: 2px 0 2px 16px; margin-bottom: 22px; }
+  .chunk.odd { border-left-color: var(--b); }
+  .meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .body { font: 16px/1.6 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere; }
+  mark { background: var(--reuse); color: inherit; padding: 0 1px; }
+  .legend { font-size: 12px; color: var(--muted); margin: -8px 0 18px; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <h1>Chunk lab</h1>
+    <p class="sub">See how chunk size and overlap change what a retriever will be given.</p>
+
+    <div class="row">
+      <div><label for="size">Chunk size (tokens)</label><input id="size" type="number" value="60" min="5" max="4000"></div>
+      <div><label for="overlap">Overlap (tokens)</label><input id="overlap" type="number" value="15" min="0"></div>
+    </div>
+    <div class="check"><input id="clean" type="checkbox" checked><label for="clean" style="margin:0;color:inherit">Clean text first</label></div>
+
+    <label for="text">Paste text</label>
+    <textarea id="text"></textarea>
+
+    <hr>
+    <label for="file">Or ingest a file (.txt, .md, .pdf) with these settings</label>
+    <input id="file" class="file" type="file" accept=".txt,.md,.pdf">
+    <p class="sub" style="margin-top:8px">Uploads are saved to the database; pasted text is not.</p>
+  </aside>
+
+  <main>
+    <div id="stats">Type or paste text to see it chunked.</div>
+    <div class="legend" id="legend" hidden><mark>Highlighted</mark> text is repeated from the end of the previous chunk (the overlap).</div>
+    <div id="out"></div>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const SAMPLE = "Retrieval-augmented generation answers questions using your own documents. First, each document is split into chunks. Each chunk is turned into an embedding, a list of numbers that captures its meaning. When a question arrives, it is embedded the same way, and the closest chunks are retrieved.\n\nChunk size is a trade-off. Small chunks are precise, but a single chunk may not contain enough context to answer anything. Large chunks carry more context, but they blur several topics together, and the retriever can no longer tell which part matched.\n\nOverlap protects against unlucky cuts. If an answer straddles the boundary between two chunks, the repeated text means at least one chunk still contains the whole thought.";
+$('text').value = SAMPLE;
+
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function say(msg, isErr = false) { const el = $('stats'); el.textContent = msg; el.className = isErr ? 'err' : ''; }
+
+function errorText(data, status) {
+  if (data && data.error) return data.error.message;
+  if (data && Array.isArray(data.detail) && data.detail[0]) return data.detail[0].msg;
+  return 'Request failed (' + status + ')';
+}
+
+function render(chunks, prefix) {
+  $('legend').hidden = chunks.length < 2;
+  $('out').innerHTML = chunks.map((c, i) => {
+    const prev = chunks[i - 1];
+    let text = esc(c.content);
+    if (prev && prev.page_number === c.page_number && prev.char_end > c.char_start) {
+      const n = prev.char_end - c.char_start;               // characters shared with the previous chunk
+      text = '<mark>' + esc(c.content.slice(0, n)) + '</mark>' + esc(c.content.slice(n));
+    }
+    const page = c.page_number != null ? ', page ' + c.page_number : '';
+    return '<div class="chunk ' + (i % 2 ? 'odd' : '') + '"><div class="meta">chunk ' + c.chunk_index +
+      ' — ' + c.token_count + ' tokens, chars ' + c.char_start + '–' + c.char_end + page +
+      '</div><div class="body">' + text + '</div></div>';
+  }).join('');
+}
+
+async function preview() {
+  const text = $('text').value;
+  if (!text.trim()) { $('out').innerHTML = ''; say('Type or paste text to see it chunked.'); return; }
+  try {
+    const res = await fetch('/chunk-preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, chunk_size: +$('size').value, chunk_overlap: +$('overlap').value, clean: $('clean').checked }),
+    });
+    const data = await res.json();
+    if (!res.ok) { say(errorText(data, res.status), true); return; }
+    const avg = data.chunk_count ? Math.round(data.total_tokens / data.chunk_count) : 0;
+    say(data.chunk_count + ' chunks from ' + data.total_tokens + ' tokens (about ' + avg + ' tokens per chunk)');
+    render(data.chunks);
+  } catch (e) { say('Cannot reach the API: ' + e.message, true); }
+}
+
+async function ingest(file) {
+  const q = '?chunk_size=' + +$('size').value + '&chunk_overlap=' + +$('overlap').value;
+  const form = new FormData(); form.append('file', file);
+  say('Ingesting ' + file.name + '…');
+  try {
+    const res = await fetch('/documents' + q, { method: 'POST', body: form });
+    const doc = await res.json();
+    if (!res.ok) { say(errorText(doc, res.status), true); return; }
+    const chunks = await (await fetch('/documents/' + doc.id + '/chunks?limit=500')).json();
+    say('Saved document #' + doc.id + ' (' + doc.source_type + ', ' + doc.page_count + ' page(s)) as ' + doc.chunk_count + ' chunks');
+    render(chunks);
+  } catch (e) { say('Cannot reach the API: ' + e.message, true); }
+}
+
+let timer;
+['text', 'size', 'overlap', 'clean'].forEach((id) =>
+  $(id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(preview, 250); }));
+$('file').addEventListener('change', (e) => { if (e.target.files[0]) ingest(e.target.files[0]); e.target.value = ''; });
+preview();
+</script>
+</body>
+</html>

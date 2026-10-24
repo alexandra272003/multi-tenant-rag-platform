@@ -1,0 +1,35 @@
+[
+  {"id": "f1", "type": "factoid", "question": "How many days of annual leave do full-time employees accrue per year?", "gold_document": "leave_policy.txt", "gold_span": "20 days of annual leave per calendar year"},
+  {"id": "f2", "type": "factoid", "question": "How many sick days are employees entitled to per year?", "gold_document": "leave_policy.txt", "gold_span": "10 paid sick days per year"},
+  {"id": "f3", "type": "factoid", "question": "How long is parental leave?", "gold_document": "leave_policy.txt", "gold_span": "16 weeks of paid parental leave"},
+  {"id": "f4", "type": "factoid", "question": "How many weeks notice must an employee give when resigning?", "gold_document": "leave_policy.txt", "gold_span": "4 weeks of written notice"},
+  {"id": "f5", "type": "factoid", "question": "How much does the Pro plan cost per month?", "gold_document": "product_faq.txt", "gold_span": "Pro plan costs 49 dollars per month"},
+  {"id": "f6", "type": "factoid", "question": "Within how many days can a new subscription be refunded with no questions asked?", "gold_document": "product_faq.txt", "gold_span": "refunded in full within 14 days"},
+  {"id": "f7", "type": "factoid", "question": "How long are deleted projects kept in the trash folder before being permanently erased?", "gold_document": "product_faq.txt", "gold_span": "kept in a recoverable trash folder for 30 days"},
+  {"id": "f8", "type": "factoid", "question": "At what temperature does water boil at sea level in Celsius?", "gold_document": "science_facts.txt", "gold_span": "Water boils at 100 degrees Celsius"},
+  {"id": "f9", "type": "factoid", "question": "What is the approximate speed of light in a vacuum?", "gold_document": "science_facts.txt", "gold_span": "299,792 kilometers per second"},
+  {"id": "f10", "type": "factoid", "question": "What does photosynthesis produce from sunlight, water, and carbon dioxide?", "gold_document": "science_facts.txt", "gold_span": "glucose and oxygen"},
+
+  {"id": "p1", "type": "paraphrase", "question": "What's the yearly annual leave allowance for someone working full time?", "gold_document": "leave_policy.txt", "gold_span": "20 days of annual leave per calendar year"},
+  {"id": "p2", "type": "paraphrase", "question": "If I just had a baby, how much paid leave can I take?", "gold_document": "leave_policy.txt", "gold_span": "16 weeks of paid parental leave"},
+  {"id": "p3", "type": "paraphrase", "question": "What's the monthly price of the higher-tier Pro subscription?", "gold_document": "product_faq.txt", "gold_span": "Pro plan costs 49 dollars per month"},
+  {"id": "p4", "type": "paraphrase", "question": "If I cancel right after signing up, can I get my money back?", "gold_document": "product_faq.txt", "gold_span": "refunded in full within 14 days"},
+  {"id": "p5", "type": "paraphrase", "question": "What temperature in Fahrenheit does water start boiling at sea level?", "gold_document": "science_facts.txt", "gold_span": "212 degrees Fahrenheit"},
+  {"id": "p6", "type": "paraphrase", "question": "What's the fastest anything can travel according to relativity?", "gold_document": "science_facts.txt", "gold_span": "maximum speed at which information or matter can travel"},
+
+  {"id": "a1", "type": "ambiguous", "question": "probation length", "gold_document": "leave_policy.txt", "gold_span": "90 day probation period"},
+  {"id": "a2", "type": "ambiguous", "question": "remote days allowed", "gold_document": "leave_policy.txt", "gold_span": "up to 3 days per week"},
+  {"id": "a3", "type": "ambiguous", "question": "api limits pro", "gold_document": "product_faq.txt", "gold_span": "500 requests per minute on the Pro plan"},
+  {"id": "a4", "type": "ambiguous", "question": "chat support hours", "gold_document": "product_faq.txt", "gold_span": "Monday through Friday, 9 AM to 6 PM"},
+  {"id": "a5", "type": "ambiguous", "question": "heart rate resting", "gold_document": "science_facts.txt", "gold_span": "60 to 100 times per minute at rest"},
+  {"id": "a6", "type": "ambiguous", "question": "gravity acceleration earth", "gold_document": "science_facts.txt", "gold_span": "9.8 meters per second squared"},
+
+  {"id": "n1", "type": "no_answer", "question": "What is the capital city of France?", "gold_document": null, "gold_span": null},
+  {"id": "n2", "type": "no_answer", "question": "How many holidays does the company observe for Diwali?", "gold_document": null, "gold_span": null},
+  {"id": "n3", "type": "no_answer", "question": "What is the refund policy for the Enterprise plan?", "gold_document": null, "gold_span": null},
+  {"id": "n4", "type": "no_answer", "question": "What is the boiling point of mercury?", "gold_document": null, "gold_span": null},
+  {"id": "n5", "type": "no_answer", "question": "Does the leave policy cover unpaid sabbaticals?", "gold_document": null, "gold_span": null},
+  {"id": "n6", "type": "no_answer", "question": "What programming language is the product's API built in?", "gold_document": null, "gold_span": null},
+  {"id": "n7", "type": "no_answer", "question": "How fast does sound travel?", "gold_document": null, "gold_span": null},
+  {"id": "n8", "type": "no_answer", "question": "What is the CEO's name?", "gold_document": null, "gold_span": null}
+]
